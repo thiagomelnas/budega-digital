@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Troque pelo e-mail do administrador (o mesmo de ADMIN_EMAIL no index.html)
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email == "seu-email@exemplo.com";
+    }
+    function signedIn() { return request.auth != null; }
+
+    // Brindes: todos veem, só o admin altera
+    match /items/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Contas dos alunos: o aluno só consegue abrir a própria conta
+    // digitando o usuário; ninguém além do admin lista ou altera
+    match /accounts/{id} {
+      allow get: if signedIn();
+      allow list, write: if isAdmin();
+    }
+
+    // Pedidos: cada aparelho grava só o seu; o admin gerencia todos
+    match /spend/{uid} {
+      allow read: if signedIn();
+      allow write: if isAdmin() || request.auth.uid == uid;
+    }
+  }
+}
